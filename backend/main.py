@@ -21,17 +21,55 @@ import asyncio
 app = FastAPI(
     title="Vibe Reverse Engineer API",
     description="API for analyzing and reverse engineering vibecoded projects from git repositories",
-    version="1.0.0"
+    version="1.0.0",
+    docs_url="/docs" if os.getenv("ENVIRONMENT", "development") != "production" else None,
+    redoc_url="/redoc" if os.getenv("ENVIRONMENT", "development") != "production" else None,
 )
 
-# Add CORS middleware for frontend integration
+# CORS configuration for production and development
+allowed_origins = [
+    "http://localhost:5173",
+    "http://localhost:5174", 
+    "http://localhost:5175",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:5174",
+    "http://127.0.0.1:5175",
+]
+
+# Add production origins from environment variable
+if os.getenv("CORS_ORIGINS"):
+    production_origins = os.getenv("CORS_ORIGINS").split(",")
+    allowed_origins.extend([origin.strip() for origin in production_origins])
+
+# Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins for development
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Health check endpoint for monitoring
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for deployment monitoring"""
+    return {
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat(),
+        "version": "1.0.0",
+        "service": "vibe-api"
+    }
+
+# Root endpoint
+@app.get("/")
+async def root():
+    """Root endpoint"""
+    return {
+        "message": "Vibe Reverse Engineer API",
+        "version": "1.0.0",
+        "docs": "/docs" if os.getenv("ENVIRONMENT", "development") != "production" else "Documentation disabled in production"
+    }
 
 # Pydantic models for API request/response
 class GitRepository(BaseModel):
