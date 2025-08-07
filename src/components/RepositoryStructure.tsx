@@ -3,7 +3,7 @@
  * Displays the file structure and dependencies of analyzed repositories
  */
 
-import React, { useCallback, useMemo } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import ReactFlow, {
   addEdge,
   useNodesState,
@@ -14,6 +14,9 @@ import ReactFlow, {
   Panel,
 } from 'reactflow'
 import type { Node, Edge, Connection } from 'reactflow'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Expand, Shrink, Download } from 'lucide-react'
 import 'reactflow/dist/style.css'
 
 interface RepositoryStructureProps {
@@ -153,6 +156,8 @@ const RepositoryStructure: React.FC<RepositoryStructureProps> = ({
   fileStructure, 
   repositoryName 
 }) => {
+  const [isFullScreen, setIsFullScreen] = useState(false)
+  
   // Convert file structure to flow data
   const { nodes: initialNodes, edges: initialEdges } = useMemo(
     () => convertToFlowData(fileStructure, repositoryName),
@@ -170,8 +175,35 @@ const RepositoryStructure: React.FC<RepositoryStructureProps> = ({
     [setEdges]
   )
 
-  return (
-    <div className="w-full h-96 border border-gray-200 rounded-lg bg-white">
+  /**
+   * Toggle full-screen mode
+   */
+  const toggleFullScreen = useCallback(() => {
+    setIsFullScreen(!isFullScreen)
+  }, [isFullScreen])
+
+  /**
+   * Export structure as JSON
+   */
+  const exportStructure = useCallback(() => {
+    const dataStr = JSON.stringify(fileStructure, null, 2)
+    const dataBlob = new Blob([dataStr], { type: 'application/json' })
+    const url = URL.createObjectURL(dataBlob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `${repositoryName}-structure.json`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }, [fileStructure, repositoryName])
+
+  const containerClass = isFullScreen 
+    ? "fixed inset-0 z-50 bg-white" 
+    : "w-full h-96 border border-gray-200 rounded-lg bg-white"
+
+  const flowContent = (
+    <div className={containerClass}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -191,11 +223,33 @@ const RepositoryStructure: React.FC<RepositoryStructureProps> = ({
           pannable
         />
         <Background color="#aaa" gap={16} />
+        
+        {/* Top Panel with Controls */}
         <Panel position="top-left">
           <div className="bg-white p-3 rounded-lg shadow-md">
-            <h3 className="text-sm font-semibold text-gray-900 mb-2">
-              Repository Structure: {repositoryName}
-            </h3>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-semibold text-gray-900">
+                Repository Structure: {repositoryName}
+              </h3>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={exportStructure}
+                  className="h-8 w-8 p-0"
+                >
+                  <Download className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={toggleFullScreen}
+                  className="h-8 w-8 p-0"
+                >
+                  {isFullScreen ? <Shrink className="h-4 w-4" /> : <Expand className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
             <div className="text-xs text-gray-600 space-y-1">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 bg-yellow-200 rounded"></div>
@@ -216,8 +270,54 @@ const RepositoryStructure: React.FC<RepositoryStructureProps> = ({
             </div>
           </div>
         </Panel>
+
+        {/* Full-screen info panel */}
+        {isFullScreen && (
+          <Panel position="top-right">
+            <div className="bg-white p-3 rounded-lg shadow-md">
+              <h4 className="text-sm font-semibold text-gray-900 mb-2">Navigation Tips</h4>
+              <div className="text-xs text-gray-600 space-y-1">
+                <div>• Use mouse wheel to zoom</div>
+                <div>• Click and drag to pan</div>
+                <div>• Use controls on bottom-left</div>
+                <div>• Minimap shows overview</div>
+              </div>
+            </div>
+          </Panel>
+        )}
       </ReactFlow>
     </div>
+  )
+
+  if (isFullScreen) {
+    return flowContent
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle>Repository Structure</CardTitle>
+            <CardDescription>
+              Interactive visualization of the repository file structure
+            </CardDescription>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={toggleFullScreen}
+            className="flex items-center gap-2"
+          >
+            <Expand className="h-4 w-4" />
+            Full Screen
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {flowContent}
+      </CardContent>
+    </Card>
   )
 }
 

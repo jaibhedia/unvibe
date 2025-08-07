@@ -48,15 +48,15 @@ const countFilesByType = (structure: Record<string, any>): Record<string, number
   const counts: Record<string, number> = {}
   
   const processStructure = (obj: Record<string, any>) => {
-    Object.values(obj).forEach(value => {
-      if (Array.isArray(value)) {
-        // Array of files
-        value.forEach(file => {
-          const ext = file.split('.').pop()?.toLowerCase() || 'other'
+    Object.entries(obj).forEach(([key, value]) => {
+      if (typeof value === 'string') {
+        // This is a file with size info like "1234 bytes"
+        if (!key.endsWith('/')) {
+          const ext = key.split('.').pop()?.toLowerCase() || 'other'
           counts[ext] = (counts[ext] || 0) + 1
-        })
-      } else if (typeof value === 'object') {
-        // Nested folder
+        }
+      } else if (typeof value === 'object' && value !== null) {
+        // This is a nested directory
         processStructure(value)
       }
     })
@@ -110,14 +110,22 @@ const AnalysisCharts: React.FC<AnalysisChartsProps> = ({
 
   // Prepare data for File Type Distribution
   const fileTypeCounts = countFilesByType(analysisData.fileStructure)
+  console.log('File structure:', analysisData.fileStructure)
+  console.log('File type counts:', fileTypeCounts)
+  
+  // Filter out empty counts and ensure we have data
+  const validFileTypeCounts = Object.fromEntries(
+    Object.entries(fileTypeCounts).filter(([, count]) => count > 0)
+  )
+  
   const fileTypeData = {
-    labels: Object.keys(fileTypeCounts),
+    labels: Object.keys(validFileTypeCounts).length > 0 ? Object.keys(validFileTypeCounts) : ['No files detected'],
     datasets: [
       {
         label: 'File Count',
-        data: Object.values(fileTypeCounts),
-        backgroundColor: generateColors(Object.keys(fileTypeCounts).length),
-        borderColor: generateColors(Object.keys(fileTypeCounts).length).map(color => color + '80'),
+        data: Object.keys(validFileTypeCounts).length > 0 ? Object.values(validFileTypeCounts) : [1],
+        backgroundColor: generateColors(Math.max(Object.keys(validFileTypeCounts).length, 1)),
+        borderColor: generateColors(Math.max(Object.keys(validFileTypeCounts).length, 1)).map(color => color + '80'),
         borderWidth: 2,
       },
     ],

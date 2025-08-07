@@ -44,6 +44,7 @@ function App() {
   const [activeView, setActiveView] = useState<'dashboard' | 'repositories' | 'analyses' | 'documentation'>('dashboard')
   const [showExplanation, setShowExplanation] = useState(false)
   const [explanationType, setExplanationType] = useState<'platform' | 'analysis' | 'vibe' | null>(null)
+  const [showJsonModal, setShowJsonModal] = useState(false)
   
   // Chatbot state
   const [showChatbot, setShowChatbot] = useState(false)
@@ -461,8 +462,23 @@ function App() {
                 {/* Analysis Charts */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>Detailed Analysis</CardTitle>
-                    <CardDescription>Comprehensive breakdown of technologies, complexity, and patterns</CardDescription>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle>Detailed Analysis</CardTitle>
+                        <CardDescription>Comprehensive breakdown of technologies, complexity, and patterns</CardDescription>
+                      </div>
+                      <Button
+                        onClick={() => setShowJsonModal(true)}
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-2"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                        </svg>
+                        View Raw Data
+                      </Button>
+                    </div>
                   </CardHeader>
                   <CardContent>
                     <AnalysisCharts 
@@ -476,6 +492,72 @@ function App() {
                     />
                   </CardContent>
                 </Card>
+
+                {/* Repository Structure */}
+                <RepositoryStructure 
+                  fileStructure={selectedAnalysis.file_structure}
+                  repositoryName={selectedRepository.name}
+                />
+
+                {/* Detailed Breakdown Cards */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* Technologies */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Technologies Detected</CardTitle>
+                      <CardDescription>{selectedAnalysis.technologies_detected.length} technologies found</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        {selectedAnalysis.technologies_detected.map((tech, idx) => (
+                          <div key={idx} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                            <span className="font-medium">{tech}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Vibe Patterns */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Code Patterns</CardTitle>
+                      <CardDescription>{selectedAnalysis.vibe_patterns.length} patterns identified</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        {selectedAnalysis.vibe_patterns.map((pattern, idx) => (
+                          <div key={idx} className="flex items-center p-2 bg-green-50 rounded">
+                            <svg className="w-4 h-4 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                            <span className="text-sm">{pattern}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Recommendations */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Recommendations</CardTitle>
+                      <CardDescription>{selectedAnalysis.recommendations.length} suggestions for improvement</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        {selectedAnalysis.recommendations.map((rec, idx) => (
+                          <div key={idx} className="flex items-start p-2 bg-blue-50 rounded">
+                            <svg className="w-4 h-4 text-blue-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span className="text-sm">{rec}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
               </div>
             ) : (
               <Card>
@@ -906,6 +988,64 @@ function App() {
         {/* Render Active View */}
         {renderActiveView()}
       </main>
+
+      {/* JSON Data Modal */}
+      {showJsonModal && selectedAnalysis && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed inset-0 transition-opacity" aria-hidden="true">
+              <div className="absolute inset-0 bg-gray-500 opacity-75" onClick={() => setShowJsonModal(false)}></div>
+            </div>
+
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
+              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg leading-6 font-medium text-gray-900">
+                    Raw Analysis Data - {selectedRepository?.name}
+                  </h3>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => {
+                        const dataStr = JSON.stringify(selectedAnalysis, null, 2)
+                        const dataBlob = new Blob([dataStr], { type: 'application/json' })
+                        const url = URL.createObjectURL(dataBlob)
+                        const link = document.createElement('a')
+                        link.href = url
+                        link.download = `${selectedRepository?.name}-analysis.json`
+                        document.body.appendChild(link)
+                        link.click()
+                        document.body.removeChild(link)
+                        URL.revokeObjectURL(url)
+                      }}
+                      variant="outline"
+                      size="sm"
+                    >
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      Download JSON
+                    </Button>
+                    <Button
+                      onClick={() => setShowJsonModal(false)}
+                      variant="ghost"
+                      size="sm"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </Button>
+                  </div>
+                </div>
+                <div className="max-h-96 overflow-y-auto">
+                  <pre className="bg-gray-100 p-4 rounded text-xs overflow-x-auto">
+                    {JSON.stringify(selectedAnalysis, null, 2)}
+                  </pre>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Footer - Positioned at bottom */}
       <footer className="bg-white border-t border-gray-200 mt-auto">
