@@ -1,0 +1,116 @@
+{
+  "repositories": [
+    {
+      "id": "1",
+      "url": "https://github.com/example/react-dashboard",
+      "name": "React Dashboard",
+      "description": "A modern React dashboard with TypeScript and Tailwind CSS",
+      "analysis_status": "completed",
+      "created_at": "2024-08-06T10:00:00Z",
+      "updated_at": "2024-08-06T10:05:00Z"
+    },
+    {
+      "id": "2",
+      "url": "https://github.com/example/vue-ecommerce",
+      "name": "Vue E-commerce",
+      "description": "Full-stack e-commerce application built with Vue.js",
+      "analysis_status": "completed",
+      "created_at": "2024-08-06T11:00:00Z",
+      "updated_at": "2024-08-06T11:08:00Z"
+    }
+  ],
+  "analyses": [
+    {
+      "id": "1",
+      "repository_id": "1",
+      "file_structure": {
+        "src/": {
+          "components/": ["Dashboard.tsx", "Header.tsx", "Sidebar.tsx", "Chart.tsx"],
+          "pages/": ["Home.tsx", "Analytics.tsx", "Settings.tsx"],
+          "hooks/": ["useAuth.ts", "useData.ts"],
+          "utils/": ["api.ts", "helpers.ts", "constants.ts"],
+          "styles/": ["globals.css", "components.css"]
+        },
+        "public/": ["index.html", "favicon.ico", "manifest.json"],
+        "tests/": ["Dashboard.test.tsx", "utils.test.ts"],
+        "package.json": "dependencies and scripts",
+        "README.md": "project documentation",
+        "tsconfig.json": "TypeScript configuration"
+      },
+      "technologies_detected": ["React", "TypeScript", "Tailwind CSS", "Vite", "Jest"],
+      "complexity_score": 7.2,
+      "vibe_patterns": [
+        "Component-based architecture",
+        "TypeScript for type safety",
+        "Custom hooks for logic separation",
+        "Responsive design patterns",
+        "Modern React patterns with hooks",
+        "Clean folder structure"
+      ],
+      "recommendations": [
+        "Add error boundaries for better error handling",
+        "Implement lazy loading for better performance",
+        "Consider using React Query for data fetching",
+        "Add more comprehensive unit tests",
+        "Implement code splitting at route level"
+      ],
+      "created_at": "2024-08-06T10:05:00Z"
+    },
+    {
+      "id": "2",
+      "repository_id": "2",
+      "file_structure": {
+        "src/": {
+          "components/": ["ProductCard.vue", "ShoppingCart.vue", "UserProfile.vue"],
+          "views/": ["Home.vue", "Products.vue", "Checkout.vue"],
+          "stores/": ["auth.js", "cart.js", "products.js"],
+          "router/": ["index.js"],
+          "assets/": ["logo.svg", "styles.css"]
+        },
+        "public/": ["index.html", "favicon.ico"],
+        "server/": {
+          "routes/": ["auth.js", "products.js", "orders.js"],
+          "models/": ["User.js", "Product.js", "Order.js"],
+          "middleware/": ["auth.js", "validation.js"]
+        },
+        "package.json": "dependencies and scripts",
+        "README.md": "project documentation"
+      },
+      "technologies_detected": ["Vue.js", "Node.js", "Express", "MongoDB", "Pinia"],
+      "complexity_score": 8.5,
+      "vibe_patterns": [
+        "Component-based Vue architecture",
+        "State management with Pinia",
+        "RESTful API design",
+        "Authentication middleware",
+        "MongoDB for data persistence",
+        "Express.js backend structure"
+      ],
+      "recommendations": [
+        "Add input validation on frontend",
+        "Implement proper error logging",
+        "Add API rate limiting",
+        "Consider implementing caching",
+        "Add monitoring and analytics",
+        "Implement automated testing pipeline"
+      ],
+      "created_at": "2024-08-06T11:08:00Z"
+    }
+  ],
+  "templates": [
+    {
+      "id": "1",
+      "name": "React TypeScript Starter",
+      "description": "Modern React app with TypeScript, Tailwind CSS, and Vite",
+      "technologies": ["React", "TypeScript", "Tailwind CSS", "Vite"],
+      "complexity": "Medium"
+    },
+    {
+      "id": "2", 
+      "name": "Full-Stack Vue App",
+      "description": "Complete Vue.js application with Node.js backend",
+      "technologies": ["Vue.js", "Node.js", "Express", "MongoDB"],
+      "complexity": "High"
+    }
+  ]
+}
