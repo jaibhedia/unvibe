@@ -37,8 +37,9 @@ allowed_origins = [
     "https://unvibe.vercel.app",
     "https://unvibe-*.vercel.app",
     "https://*.vercel.app",
-    "https://unvibe.netlify.app/",
-    "https://*.netlify.app/"
+    "https://unvibe.netlify.app",
+    "https://unvibe-*.netlify.app",
+    "https://*.netlify.app"
 ]
 
 # Add production origins from environment variable
