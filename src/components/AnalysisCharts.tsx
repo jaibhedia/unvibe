@@ -4,35 +4,8 @@
  */
 
 import React from 'react'
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  ArcElement,
-  PointElement,
-  LineElement,
-  Filler,
-} from 'chart.js'
 import { Bar, Doughnut, Line } from 'react-chartjs-2'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-
-// Register Chart.js components
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  ArcElement,
-  PointElement,
-  LineElement,
-  Filler
-)
 
 interface AnalysisData {
   technologiesDetected: string[]
