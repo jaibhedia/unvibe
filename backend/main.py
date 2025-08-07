@@ -108,26 +108,6 @@ class CreateRepositoryRequest(BaseModel):
 repositories: Dict[str, GitRepository] = {}
 analyses: Dict[str, RepositoryAnalysis] = {}
 
-@app.get("/")
-async def root():
-    """Root endpoint with API information"""
-    return {
-        "message": "Vibe Reverse Engineer API",
-        "version": "1.0.0",
-        "docs": "/docs",
-        "status": "active"
-    }
-
-@app.get("/health")
-async def health_check():
-    """Health check endpoint"""
-    return {
-        "status": "healthy",
-        "timestamp": datetime.now().isoformat(),
-        "version": "1.0.0",
-        "service": "vibe-api"
-    }
-
 @app.get("/repositories", response_model=List[GitRepository])
 async def get_repositories():
     """
@@ -623,11 +603,11 @@ async def analyze_repository(repository_id: str, repository_url: str):
             repositories[repository_id].analysis_status = "completed"
             
     except Exception as e:
-                # Update repository status to failed
+        # Update repository status to failed
         if repository_id in repositories:
             repositories[repository_id].analysis_status = "failed"
         print(f"Analysis failed for repository {repository_id}: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0", port=8000)
