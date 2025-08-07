@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
-import type { Analysis, FileStructure, ComplexityLevel, Repository } from '../types';
+import type { Analysis, FileStructure, ComplexityLevel } from '../types';
 
 /**
  * Hook for repository management with advanced filtering and sorting

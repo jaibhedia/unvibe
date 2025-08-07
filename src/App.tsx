@@ -11,9 +11,6 @@ import { Button } from './components/ui/button'
 import { apiService } from './services/apiService'
 import './globals.css'
 
-// Import API route test
-import './test/api-routes-test'
-
 interface Repository {
   id: string
   url: string

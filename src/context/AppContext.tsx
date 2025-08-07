@@ -581,30 +581,40 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children, initialState
     dispatch({ type: ActionTypes.SET_LOADING, payload: { key: 'analysis', value: true } });
 
     try {
-      const analysis = await apiService.pollAnalysisStatus(repositoryId, (status) => {
-        console.log(`Polling status: ${status}`);
-      });
-
-      if (analysis) {
-        dispatch({ type: ActionTypes.ADD_ANALYSIS, payload: analysis });
-        dispatch({ 
-          type: ActionTypes.ADD_NOTIFICATION, 
-          payload: { 
-            type: 'success', 
-            title: 'Analysis Complete', 
-            message: 'Repository analysis has been completed successfully.' 
-          } 
-        });
-      } else {
-        dispatch({ 
-          type: ActionTypes.ADD_NOTIFICATION, 
-          payload: { 
-            type: 'warning', 
-            title: 'Analysis Timeout', 
-            message: 'Analysis is taking longer than expected. Please check back later.' 
-          } 
-        });
-      }
+      await apiService.pollAnalysisStatus(
+        repositoryId,
+        (analysis) => {
+          console.log(`Polling update: Analysis progress`, analysis);
+          // Update with partial analysis data
+          dispatch({ type: ActionTypes.ADD_ANALYSIS, payload: analysis });
+        },
+        (analysis) => {
+          console.log(`Analysis complete for repository ${repositoryId}`, analysis);
+          // Analysis is complete
+          dispatch({ type: ActionTypes.ADD_ANALYSIS, payload: analysis });
+          dispatch({ 
+            type: ActionTypes.ADD_NOTIFICATION, 
+            payload: { 
+              type: 'success', 
+              title: 'Analysis Complete', 
+              message: 'Repository analysis has been completed successfully.' 
+            } 
+          });
+        },
+        (error) => {
+          console.error(`Polling error for repository ${repositoryId}:`, error);
+          const errorMessage = error.message || 'Analysis failed';
+          dispatch({ type: ActionTypes.SET_ERROR, payload: { key: 'analysis', value: errorMessage } });
+          dispatch({ 
+            type: ActionTypes.ADD_NOTIFICATION, 
+            payload: { 
+              type: 'error', 
+              title: 'Analysis Failed', 
+              message: errorMessage 
+            } 
+          });
+        }
+      );
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Analysis failed';
       dispatch({ type: ActionTypes.SET_ERROR, payload: { key: 'analysis', value: errorMessage } });

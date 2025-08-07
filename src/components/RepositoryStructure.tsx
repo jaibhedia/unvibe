@@ -51,7 +51,7 @@ const convertToFlowData = (structure: Record<string, any>, repoName: string) => 
     xOffset: number = 0
   ) => {
     const keys = Object.keys(obj)
-    const itemsPerLevel = Math.max(3, keys.length)
+    // Calculate spacing based on number of items at this level
     const spacing = 200
 
     keys.forEach((key, index) => {
@@ -159,7 +159,7 @@ const RepositoryStructure: React.FC<RepositoryStructureProps> = ({
     [fileStructure, repositoryName]
   )
 
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes)
+  const [nodes, , onNodesChange] = useNodesState(initialNodes)
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
 
   /**
