@@ -70,15 +70,39 @@ const AnalysisCharts: React.FC<AnalysisChartsProps> = ({
   analysisData, 
   repositoryName 
 }) => {
+  // Handle empty or invalid data
+  if (!analysisData || !analysisData.technologiesDetected || analysisData.technologiesDetected.length === 0) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardContent className="text-center py-12">
+            <div className="text-gray-400 mb-4">
+              <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">No Analysis Data Available</h3>
+            <p className="text-gray-600 mb-4">
+              The repository analysis is still in progress or failed to complete.
+            </p>
+            <div className="text-sm text-gray-500">
+              Repository: {repositoryName}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   // Prepare data for Technology Distribution Chart
   const technologyData = {
-    labels: analysisData.technologiesDetected,
+    labels: analysisData.technologiesDetected.filter(tech => tech !== 'Unknown'),
     datasets: [
       {
         label: 'Technologies Used',
-        data: analysisData.technologiesDetected.map(() => 1), // Equal weight for demo
-        backgroundColor: generateColors(analysisData.technologiesDetected.length),
-        borderColor: generateColors(analysisData.technologiesDetected.length).map(color => color + '80'),
+        data: analysisData.technologiesDetected.filter(tech => tech !== 'Unknown').map(() => 1), // Equal weight for demo
+        backgroundColor: generateColors(analysisData.technologiesDetected.filter(tech => tech !== 'Unknown').length),
+        borderColor: generateColors(analysisData.technologiesDetected.filter(tech => tech !== 'Unknown').length).map(color => color + '80'),
         borderWidth: 2,
       },
     ],
@@ -112,11 +136,18 @@ const AnalysisCharts: React.FC<AnalysisChartsProps> = ({
           analysisData.complexityScore * 0.7,
           analysisData.complexityScore * 0.85,
         ],
-        backgroundColor: 'rgba(59, 130, 246, 0.5)',
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
         borderColor: 'rgba(59, 130, 246, 1)',
         borderWidth: 2,
-        fill: true,
+        fill: {
+          target: 'origin',
+          above: 'rgba(59, 130, 246, 0.1)',
+        },
         tension: 0.4,
+        pointBackgroundColor: 'rgba(59, 130, 246, 1)',
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
+        pointRadius: 4,
       },
     ],
   }
