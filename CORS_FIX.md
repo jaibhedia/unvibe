@@ -13,7 +13,9 @@ app.add_middleware(
         "http://localhost:3000",
         "http://localhost:5173", 
         "https://unvibe.vercel.app",
-        "https://*.vercel.app"
+        "https://*.vercel.app",
+        "https://unvibe.netlify.app/",
+        "https://*.netlify.app/"
     ],
     allow_credentials=True,
     allow_methods=["*"],
