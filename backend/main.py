@@ -218,26 +218,37 @@ async def analyze_github_repository(owner: str, repo_name: str):
     """
     async with httpx.AsyncClient() as client:
         try:
+            print(f"Starting analysis for {owner}/{repo_name}")
+            
             # Get repository information
             repo_response = await client.get(f"https://api.github.com/repos/{owner}/{repo_name}")
+            print(f"Repository API response status: {repo_response.status_code}")
+            
             if repo_response.status_code != 200:
                 raise ValueError(f"Repository not found or not accessible: {repo_response.status_code}")
             
             repo_data = repo_response.json()
+            print(f"Repository data: {repo_data.get('name')}, language: {repo_data.get('language')}")
             
             # Get repository contents (files and directories)
             contents_response = await client.get(f"https://api.github.com/repos/{owner}/{repo_name}/contents")
+            print(f"Contents API response status: {contents_response.status_code}")
+            
             if contents_response.status_code != 200:
+                print(f"Contents API failed with status {contents_response.status_code}, creating minimal analysis")
                 # Repository might be empty or private
                 return await create_minimal_analysis(repo_data)
             
             contents = contents_response.json()
+            print(f"Found {len(contents)} items in repository root")
             
             # Analyze file structure recursively
             file_structure = await build_file_structure(client, owner, repo_name, contents)
+            print(f"Built file structure with {len(file_structure)} root items")
             
             # Detect technologies from files and content
             technologies_detected = detect_technologies(file_structure, repo_data)
+            print(f"Detected technologies: {technologies_detected}")
             
             # Analyze vibe patterns based on actual code structure
             vibe_patterns = analyze_code_patterns(file_structure, technologies_detected)
@@ -248,6 +259,7 @@ async def analyze_github_repository(owner: str, repo_name: str):
             # Calculate complexity score based on actual metrics
             complexity_score = calculate_complexity_score(file_structure, technologies_detected, repo_data)
             
+            print(f"Analysis completed successfully. Complexity: {complexity_score}")
             return file_structure, technologies_detected, vibe_patterns, recommendations, complexity_score
             
         except Exception as e:
@@ -563,25 +575,35 @@ async def analyze_repository(repository_id: str, repository_url: str):
     This function fetches real repository data and performs actual analysis
     """
     try:
+        print(f"Starting repository analysis for {repository_id} - {repository_url}")
+        
         # Update repository status
         if repository_id in repositories:
             repositories[repository_id].analysis_status = "analyzing"
         
         # Parse GitHub URL
         parsed_url = urlparse(repository_url)
+        print(f"Parsed URL: {parsed_url}")
+        
         if 'github.com' not in parsed_url.netloc:
             raise ValueError("Only GitHub repositories are supported")
         
         # Extract owner and repo name from URL
         path_parts = parsed_url.path.strip('/').split('/')
+        print(f"Path parts: {path_parts}")
+        
         if len(path_parts) < 2:
             raise ValueError("Invalid GitHub repository URL")
         
         owner = path_parts[0]
-        repo_name = path_parts[1]
+        repo_name = path_parts[1].replace('.git', '')  # Remove .git suffix if present
+        
+        print(f"Extracted owner: {owner}, repo: {repo_name}")
         
         # Analyze repository using GitHub API
         file_structure, technologies_detected, vibe_patterns, recommendations, complexity_score = await analyze_github_repository(owner, repo_name)
+        
+        print(f"Analysis completed. Creating record...")
         
         # Create analysis record
         analysis_id = str(uuid.uuid4())
@@ -601,12 +623,15 @@ async def analyze_repository(repository_id: str, repository_url: str):
         # Update repository status
         if repository_id in repositories:
             repositories[repository_id].analysis_status = "completed"
+            print(f"Repository {repository_id} analysis completed successfully")
             
     except Exception as e:
         # Update repository status to failed
         if repository_id in repositories:
             repositories[repository_id].analysis_status = "failed"
         print(f"Analysis failed for repository {repository_id}: {str(e)}")
+        import traceback
+        traceback.print_exc()
 
 if __name__ == "__main__":
     import uvicorn

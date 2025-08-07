@@ -19,6 +19,8 @@ import {
   PolarAreaController,
 } from 'chart.js'
 
+console.log('📊 Registering Chart.js components...')
+
 // Register all Chart.js components globally
 ChartJS.register(
   CategoryScale,
@@ -35,6 +37,8 @@ ChartJS.register(
   PolarAreaController
 )
 
+console.log('✅ Chart.js components registered successfully')
+
 // Default chart options
 export const defaultChartOptions = {
   responsive: true,
@@ -49,6 +53,9 @@ export const defaultChartOptions = {
       bodyColor: '#ffffff',
       borderColor: 'rgba(255, 255, 255, 0.1)',
       borderWidth: 1,
+    },
+    filler: {
+      propagate: false,
     },
   },
   scales: {
