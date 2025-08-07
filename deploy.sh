@@ -81,18 +81,23 @@ deploy_frontend() {
     print_success "Frontend deployed to Vercel."
 }
 
-# Deploy backend to Railway
+# Deploy backend to Render
 deploy_backend() {
-    print_status "Deploying backend to Railway..."
+    print_status "Deploying backend to Render..."
     
-    if ! command -v railway &> /dev/null; then
-        print_warning "Railway CLI not found. Installing..."
-        npm install -g @railway/cli
-    fi
+    print_status "Please follow these steps to deploy to Render:"
+    echo "1. Go to https://render.com and create an account"
+    echo "2. Connect your GitHub repository"
+    echo "3. Create a new Web Service"
+    echo "4. Use these settings:"
+    echo "   - Build Command: cd backend && pip install -r requirements.txt"
+    echo "   - Start Command: cd backend && uvicorn main:app --host 0.0.0.0 --port \$PORT"
+    echo "   - Environment: Python 3"
+    echo "5. Set environment variables:"
+    echo "   - CORS_ORIGINS=https://your-frontend-url.vercel.app"
+    echo "   - ENVIRONMENT=production"
     
-    # Deploy to Railway
-    railway up
-    print_success "Backend deployed to Railway."
+    print_success "Backend deployment instructions provided."
 }
 
 # Main deployment function
@@ -105,7 +110,7 @@ main() {
     echo ""
     print_status "Choose deployment option:"
     echo "1) Deploy frontend only (Vercel)"
-    echo "2) Deploy backend only (Railway)"
+    echo "2) Deploy backend only (Render)"
     echo "3) Deploy both frontend and backend"
     echo "4) Exit"
     

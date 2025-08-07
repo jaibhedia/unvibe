@@ -1,0 +1,24 @@
+# Render Deployment Configuration
+# https://render.com
+
+# Build Command
+buildCommand: cd backend && pip install -r requirements.txt
+
+# Start Command  
+startCommand: cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT
+
+# Environment
+environment: python
+
+# Service Type
+type: web
+
+# Auto Deploy
+autoDeploy: true
+
+# Health Check Path
+healthCheckPath: /health
+
+# Environment Variables (set these in Render dashboard)
+# CORS_ORIGINS=https://your-frontend-url.onrender.com
+# ENVIRONMENT=production

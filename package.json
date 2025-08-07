@@ -16,7 +16,7 @@
     "test": "vitest",
     "deploy": "./deploy.sh",
     "deploy:frontend": "vercel --prod",
-    "deploy:backend": "railway up",
+    "deploy:backend": "echo 'Please deploy backend manually to Render - see DEPLOYMENT.md'",
     "postbuild": "echo 'Build completed successfully!'",
     "test:ui": "vitest --ui",
     "test:run": "vitest run",

@@ -57,7 +57,7 @@ fi
 
 # Test 4: Check required files exist
 echo "4. Checking deployment files..."
-files=("vercel.json" "Dockerfile" "railway.json" ".env.production" "DEPLOYMENT.md")
+files=("vercel.json" "render.yaml" "Dockerfile" ".env.production" "DEPLOYMENT.md")
 for file in "${files[@]}"; do
     if [ -f "$file" ]; then
         test_passed "Found $file"

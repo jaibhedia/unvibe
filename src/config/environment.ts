@@ -22,7 +22,7 @@ const getEnvironmentConfig = (): EnvironmentConfig => {
   return {
     API_BASE_URL: import.meta.env.VITE_API_BASE_URL || (
       isProduction 
-        ? 'https://your-backend-url.railway.app' // Will be replaced with actual URL
+        ? 'https://your-backend-url.onrender.com' // Will be replaced with actual URL
         : 'http://127.0.0.1:8000'
     ),
     JSON_SERVER_URL: 'http://localhost:3001',

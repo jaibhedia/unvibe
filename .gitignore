@@ -36,6 +36,9 @@ dist-ssr
 # Vercel
 .vercel
 
+# Render
+.render
+
 # Deployment
 *.tgz
 *.tar.gz
