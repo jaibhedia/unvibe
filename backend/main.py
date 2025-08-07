@@ -16,6 +16,9 @@ import re
 import base64
 from urllib.parse import urlparse
 import asyncio
+import time
+import logging
+from functools import lru_cache
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -110,6 +113,106 @@ class CreateRepositoryRequest(BaseModel):
 # In-memory storage (in production, use a database)
 repositories: Dict[str, GitRepository] = {}
 analyses: Dict[str, RepositoryAnalysis] = {}
+
+# Configure logging for better debugging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# GitHub API configuration with authentication
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+GITHUB_API_BASE = "https://api.github.com"
+
+# Rate limiting configuration
+RATE_LIMIT_DELAY = 1.2  # Seconds between API calls
+MAX_RETRIES = 3
+
+class GitHubAPIClient:
+    """Enhanced GitHub API client with authentication and rate limiting"""
+    
+    def __init__(self):
+        self.token = GITHUB_TOKEN
+        self.headers = self._build_headers()
+        self.last_request_time = 0
+    
+    def _build_headers(self) -> Dict[str, str]:
+        """Build headers for GitHub API requests with authentication"""
+        headers = {
+            "Accept": "application/vnd.github.v3+json",
+            "User-Agent": "Vibe-Analysis-Platform/1.0"
+        }
+        
+        if self.token:
+            headers["Authorization"] = f"token {self.token}"
+            logger.info("GitHub API client initialized with authentication")
+        else:
+            logger.warning("GitHub API client initialized WITHOUT authentication - rate limits will apply")
+        
+        return headers
+    
+    async def _rate_limit_delay(self):
+        """Implement rate limiting to avoid API limits"""
+        current_time = time.time()
+        time_since_last = current_time - self.last_request_time
+        
+        if time_since_last < RATE_LIMIT_DELAY:
+            await asyncio.sleep(RATE_LIMIT_DELAY - time_since_last)
+        
+        self.last_request_time = time.time()
+    
+    async def make_request(self, url: str, timeout: int = 30) -> Optional[Dict]:
+        """Make authenticated request to GitHub API with retry logic"""
+        await self._rate_limit_delay()
+        
+        for attempt in range(MAX_RETRIES):
+            try:
+                timeout_config = httpx.Timeout(timeout)
+                async with httpx.AsyncClient(timeout=timeout_config) as client:
+                    logger.info(f"Making GitHub API request: {url} (attempt {attempt + 1})")
+                    
+                    response = await client.get(url, headers=self.headers)
+                    
+                    # Check rate limiting
+                    if response.status_code == 403:
+                        rate_limit_remaining = response.headers.get('X-RateLimit-Remaining', '0')
+                        if rate_limit_remaining == '0':
+                            reset_time = int(response.headers.get('X-RateLimit-Reset', 0))
+                            current_time = int(time.time())
+                            wait_time = max(reset_time - current_time, 60)
+                            
+                            logger.warning(f"Rate limit exceeded. Waiting {wait_time} seconds...")
+                            await asyncio.sleep(wait_time)
+                            continue
+                    
+                    if response.status_code == 200:
+                        logger.info(f"Successful API response: {url}")
+                        return response.json()
+                    
+                    elif response.status_code == 404:
+                        logger.warning(f"Resource not found: {url}")
+                        return None
+                    
+                    else:
+                        logger.error(f"API request failed: {url} - Status: {response.status_code}")
+                        if attempt == MAX_RETRIES - 1:
+                            return None
+                        await asyncio.sleep(2 ** attempt)  # Exponential backoff
+                        
+            except httpx.TimeoutException:
+                logger.error(f"Timeout for request: {url} (attempt {attempt + 1})")
+                if attempt == MAX_RETRIES - 1:
+                    return None
+                await asyncio.sleep(2 ** attempt)
+                
+            except Exception as e:
+                logger.error(f"Unexpected error for request {url}: {str(e)}")
+                if attempt == MAX_RETRIES - 1:
+                    return None
+                await asyncio.sleep(2 ** attempt)
+        
+        return None
+
+# Initialize GitHub API client
+github_client = GitHubAPIClient()
 
 @app.get("/repositories", response_model=List[GitRepository])
 async def get_repositories():
@@ -217,58 +320,81 @@ async def get_analysis(analysis_id: str):
 
 async def analyze_github_repository(owner: str, repo_name: str):
     """
-    Analyze a GitHub repository by fetching its actual content and structure
+    Enhanced GitHub repository analysis with authentication and robust error handling
     """
-    async with httpx.AsyncClient() as client:
-        try:
-            print(f"Starting analysis for {owner}/{repo_name}")
-            
-            # Get repository information
-            repo_response = await client.get(f"https://api.github.com/repos/{owner}/{repo_name}")
-            print(f"Repository API response status: {repo_response.status_code}")
-            
-            if repo_response.status_code != 200:
-                raise ValueError(f"Repository not found or not accessible: {repo_response.status_code}")
-            
-            repo_data = repo_response.json()
-            print(f"Repository data: {repo_data.get('name')}, language: {repo_data.get('language')}")
-            
-            # Get repository contents (files and directories)
-            contents_response = await client.get(f"https://api.github.com/repos/{owner}/{repo_name}/contents")
-            print(f"Contents API response status: {contents_response.status_code}")
-            
-            if contents_response.status_code != 200:
-                print(f"Contents API failed with status {contents_response.status_code}, creating minimal analysis")
-                # Repository might be empty or private
-                return await create_minimal_analysis(repo_data)
-            
-            contents = contents_response.json()
-            print(f"Found {len(contents)} items in repository root")
-            
-            # Analyze file structure recursively
-            file_structure = await build_file_structure(client, owner, repo_name, contents)
-            print(f"Built file structure with {len(file_structure)} root items")
-            
-            # Detect technologies from files and content
-            technologies_detected = detect_technologies(file_structure, repo_data)
-            print(f"Detected technologies: {technologies_detected}")
-            
-            # Analyze vibe patterns based on actual code structure
-            vibe_patterns = analyze_code_patterns(file_structure, technologies_detected)
-            
-            # Generate recommendations based on actual analysis
-            recommendations = generate_recommendations(file_structure, technologies_detected, repo_data)
-            
-            # Calculate complexity score based on actual metrics
-            complexity_score = calculate_complexity_score(file_structure, technologies_detected, repo_data)
-            
-            print(f"Analysis completed successfully. Complexity: {complexity_score}")
-            return file_structure, technologies_detected, vibe_patterns, recommendations, complexity_score
-            
-        except Exception as e:
-            print(f"Error analyzing GitHub repository: {str(e)}")
-            # Fallback to basic analysis if API fails
-            return await create_fallback_analysis(repo_name)
+    try:
+        logger.info(f"Starting enhanced analysis for {owner}/{repo_name}")
+        
+        # Get repository information
+        repo_url = f"{GITHUB_API_BASE}/repos/{owner}/{repo_name}"
+        repo_data = await github_client.make_request(repo_url)
+        
+        if not repo_data:
+            logger.error(f"Failed to fetch repository data for {owner}/{repo_name}")
+            return await create_fallback_analysis(repo_name, "Repository not accessible or not found")
+        
+        logger.info(f"Repository data retrieved: {repo_data.get('name')}, Language: {repo_data.get('language')}")
+        
+        # Get repository contents
+        contents_url = f"{GITHUB_API_BASE}/repos/{owner}/{repo_name}/contents"
+        contents_data = await github_client.make_request(contents_url)
+        
+        if not contents_data:
+            logger.warning(f"Repository contents not accessible for {owner}/{repo_name}")
+            return await create_minimal_analysis(repo_data, "Repository contents not accessible")
+        
+        logger.info(f"Repository contents retrieved: {len(contents_data)} items")
+        
+        # Build file structure using authenticated client
+        file_structure = await build_file_structure_authenticated(owner, repo_name, contents_data)
+        logger.info(f"File structure built with {len(file_structure)} root items")
+        
+        # Use existing technology detection
+        technologies_detected = detect_technologies(file_structure, repo_data)
+        logger.info(f"Technologies detected: {technologies_detected}")
+        
+        # Use existing pattern analysis
+        vibe_patterns = analyze_code_patterns(file_structure, technologies_detected)
+        
+        # Use existing recommendations
+        recommendations = generate_recommendations(file_structure, technologies_detected, repo_data)
+        
+        # Use existing complexity scoring
+        complexity_score = calculate_complexity_score(file_structure, technologies_detected, repo_data)
+        
+        logger.info(f"Analysis completed successfully for {owner}/{repo_name}. Complexity: {complexity_score}")
+        return file_structure, technologies_detected, vibe_patterns, recommendations, complexity_score
+        
+    except Exception as e:
+        logger.error(f"Critical error analyzing {owner}/{repo_name}: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return await create_fallback_analysis(repo_name, f"Analysis failed: {str(e)}")
+
+async def build_file_structure_authenticated(owner: str, repo_name: str, contents, path=""):
+    """
+    Recursively build file structure from GitHub API using authenticated client
+    """
+    structure = {}
+    
+    for item in contents[:20]:  # Limit to avoid API rate limits
+        if item['type'] == 'dir':
+            try:
+                # Get directory contents using authenticated client
+                dir_url = f"{GITHUB_API_BASE}/repos/{owner}/{repo_name}/contents/{item['path']}"
+                dir_contents = await github_client.make_request(dir_url)
+                
+                if dir_contents and isinstance(dir_contents, list):
+                    structure[f"{item['name']}/"] = await build_file_structure_authenticated(owner, repo_name, dir_contents[:10], item['path'])
+                else:
+                    structure[f"{item['name']}/"] = []
+            except Exception as e:
+                logger.warning(f"Failed to access directory {item['name']}: {str(e)}")
+                structure[f"{item['name']}/"] = []
+        else:
+            structure[item['name']] = f"{item.get('size', 0)} bytes"
+    
+    return structure
 
 async def build_file_structure(client: httpx.AsyncClient, owner: str, repo_name: str, contents, path=""):
     """
@@ -548,27 +674,27 @@ def count_files(structure):
             count += 1
     return count
 
-async def create_minimal_analysis(repo_data):
+async def create_minimal_analysis(repo_data, error_message="Repository content not accessible"):
     """
     Create minimal analysis for empty or inaccessible repositories
     """
     return (
-        {"README.md": "Repository content not accessible"},
+        {"README.md": error_message},
         [repo_data.get('language', 'Unknown')] if repo_data.get('language') else ['Unknown'],
         ['Repository structure not analyzable'],
         ['Repository appears to be empty or private', 'Add public content for analysis'],
         1.0
     )
 
-async def create_fallback_analysis(repo_name):
+async def create_fallback_analysis(repo_name, error_message="Analysis failed due to API limitations"):
     """
     Create fallback analysis when API fails
     """
     return (
-        {"error": "Unable to analyze repository structure"},
+        {"error": f"Unable to analyze repository structure: {error_message}"},
         ['Unknown'],
         ['Analysis failed due to API limitations'],
-        ['Repository could not be analyzed', 'Check repository accessibility'],
+        ['Repository could not be analyzed', 'Check repository accessibility', 'Verify GitHub token permissions'],
         1.0
     )
 
